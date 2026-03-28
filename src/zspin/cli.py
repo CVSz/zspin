@@ -18,6 +18,7 @@ def build_parser() -> argparse.ArgumentParser:
     run_cmd.add_argument("--dry-run", action="store_true", help="Skip artifact generation")
 
     sub.add_parser("cost", help="Analyze resource costs and optimization opportunities")
+
     scale_cmd = sub.add_parser("scaling-plan", help="Generate deterministic scaling plan bundle")
     scale_cmd.add_argument("--input", required=True, help="Path to scaling input JSON")
     scale_cmd.add_argument("--output", default="reports/scaling_plan.json", help="Output report path")
@@ -35,19 +36,14 @@ def build_parser() -> argparse.ArgumentParser:
     alert_cmd.add_argument("alert_name", type=str)
 
     sub.add_parser("start-metrics", help="Start Prometheus metrics endpoint")
-
     sub.add_parser("start-api", help="Start control plane API")
-
-
     sub.add_parser("start-control-plane", help="Start lightweight custom control plane API")
-
     sub.add_parser("run-operator", help="Run custom control plane operator reconcile loop")
-
     sub.add_parser("run-distributed", help="Run distributed control plane loop")
 
-    raft_cmd = sub.add_parser("run-raft", help="Run Raft node with gRPC service")
-    raft_cmd.add_argument("node_id", type=str)
-    raft_cmd.add_argument("port", type=int)
+    grpc_raft_cmd = sub.add_parser("run-raft-grpc", help="Run Raft node with gRPC service")
+    grpc_raft_cmd.add_argument("node_id", type=str)
+    grpc_raft_cmd.add_argument("port", type=int)
 
     deploy_multi_cmd = sub.add_parser("deploy-multi", help="Deploy service in multi-tenant mode")
     deploy_multi_cmd.add_argument("name", type=str)
@@ -66,6 +62,21 @@ def build_parser() -> argparse.ArgumentParser:
 
     db_cmd = sub.add_parser("run-db", help="Run distributed DB shell on top of Raft")
     db_cmd.add_argument("node_id", type=str)
+
+    master_meta_cmd = sub.add_parser(
+        "master-meta", help="Generate full implementation bundle (audit + release + validation)"
+    )
+    master_meta_cmd.add_argument("--config", default=None, help="Path to workflow config JSON")
+    master_meta_cmd.add_argument(
+        "--output-dir",
+        default="reports/master_meta",
+        help="Directory to store generated reports and reproducibility metadata",
+    )
+    master_meta_cmd.add_argument(
+        "--dry-run",
+        action="store_true",
+        help="Skip release artifact generation and perform analysis/reporting only",
+    )
 
     return parser
 
@@ -144,7 +155,6 @@ def main() -> int:
         uvicorn.run(cp_app, host="0.0.0.0", port=8080)
         return 0
 
-
     if args.command == "start-control-plane":
         import uvicorn
 
@@ -154,11 +164,10 @@ def main() -> int:
         return 0
 
     if args.command == "run-operator":
+        from .apiserver import store
         from .control_loop import run_operator_loop
         from .operator import Operator
         from .platform.runtime import Runtime
-
-        from .apiserver import store
 
         op = Operator(store, Runtime())
         run_operator_loop(op)
@@ -183,7 +192,7 @@ def main() -> int:
         loop.run()
         return 0
 
-    if args.command == "run-raft":
+    if args.command == "run-raft-grpc":
         import threading
 
         from .raft.node import RaftNode
@@ -259,8 +268,16 @@ def main() -> int:
                 print("error:", exc)
         return 0
 
-    parser.print_help()
-    return 1
+    if args.command == "master-meta":
+        from .master_meta import run_master_meta_bundle
+
+        config = load_config(args.config)
+        bundle = run_master_meta_bundle(config=config, output_dir=args.output_dir, dry_run=args.dry_run)
+        print(json.dumps(bundle, indent=2, sort_keys=True))
+        return 0
+
+    parser.error(f"Unhandled command: {args.command}")
+    return 2
 
 
 if __name__ == "__main__":
