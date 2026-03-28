@@ -35,6 +35,17 @@ def build_parser() -> argparse.ArgumentParser:
 
     sub.add_parser("start-api", help="Start control plane API")
 
+
+    sub.add_parser("start-control-plane", help="Start lightweight custom control plane API")
+
+    sub.add_parser("run-operator", help="Run custom control plane operator reconcile loop")
+
+    sub.add_parser("run-distributed", help="Run distributed control plane loop")
+
+    raft_cmd = sub.add_parser("run-raft", help="Run Raft node with gRPC service")
+    raft_cmd.add_argument("node_id", type=str)
+    raft_cmd.add_argument("port", type=int)
+
     deploy_multi_cmd = sub.add_parser("deploy-multi", help="Deploy service in multi-tenant mode")
     deploy_multi_cmd.add_argument("name", type=str)
     deploy_multi_cmd.add_argument("tenant", type=str)
@@ -114,6 +125,58 @@ def main() -> int:
         from .control_plane.api import app as cp_app
 
         uvicorn.run(cp_app, host="0.0.0.0", port=8080)
+        return 0
+
+
+    if args.command == "start-control-plane":
+        import uvicorn
+
+        from .apiserver import app as cp_custom_app
+
+        uvicorn.run(cp_custom_app, host="0.0.0.0", port=8081)
+        return 0
+
+    if args.command == "run-operator":
+        from .control_loop import run_operator_loop
+        from .operator import Operator
+        from .platform.runtime import Runtime
+
+        from .apiserver import store
+
+        op = Operator(store, Runtime())
+        run_operator_loop(op)
+        return 0
+
+    if args.command == "run-distributed":
+        from .controller import Controller
+        from .distributed_loop import DistributedLoop
+        from .etcd import KVStore
+        from .leader import LeaderElection
+
+        store = KVStore()
+        store.put("service-a", {"replicas": 1})
+
+        def reconcile(key: str, val: object) -> None:
+            print(f"[reconcile] {key} -> {val}")
+
+        controller = Controller(store, reconcile)
+        leader = LeaderElection()
+
+        loop = DistributedLoop(leader, controller)
+        loop.run()
+        return 0
+
+    if args.command == "run-raft":
+        import threading
+
+        from .raft.node import RaftNode
+        from .raft.server import serve
+
+        peers: list[str] = []
+        node = RaftNode(args.node_id, peers)
+
+        threading.Thread(target=node.run, daemon=True).start()
+        serve(node, args.port)
         return 0
 
     if args.command == "deploy-multi":
