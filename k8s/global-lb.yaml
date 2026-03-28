@@ -1,0 +1,8 @@
+# Cloudflare handles global LB externally
+# This file documents routing strategy
+
+# Regions:
+# us-east → cluster-a
+# eu-west → cluster-b
+
+# Use Cloudflare Load Balancer with geo steering

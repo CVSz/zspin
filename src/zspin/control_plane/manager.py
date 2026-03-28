@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from zspin.aiops import AIOpsEngine
+from zspin.events import publish_event
 from zspin.platform.runtime import Runtime
 from zspin.platform.services import Service
 
@@ -12,6 +14,7 @@ class ControlPlane:
             "cluster-a": {},
             "cluster-b": {},
         }
+        self.ai = AIOpsEngine()
 
     def register_tenant(self, tenant: str) -> None:
         self.tenants.setdefault(tenant, {"services": []})
@@ -32,6 +35,14 @@ class ControlPlane:
             raise ValueError("service name is required")
 
         result = self.runtime.deploy(Service(svc_name, service.get("type", "api")))
+
+        publish_event(
+            "deployments",
+            {"tenant": tenant, "service": svc_name, "cluster": cluster},
+        )
+
+        decision = self.ai.analyze({"latency": 100, "errors": 0.01})
+        self.ai.feedback(decision)
 
         self.tenants[tenant]["services"].append({"name": svc_name, "cluster": cluster})
 
