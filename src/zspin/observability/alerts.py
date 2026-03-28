@@ -32,7 +32,8 @@ class AlertHandler:
         if not allowed:
             return {"status": "blocked_by_policy", "action": action, "slo_violations": slo_violations}
 
-        result = self.engine.run(mapped)
+        execution_issue = {"type": decision["type"], "service": mapped.get("service", "api")}
+        result = self.engine.run(execution_issue)
         return {
             "status": "executed",
             "decision": decision,

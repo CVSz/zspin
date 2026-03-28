@@ -56,6 +56,18 @@ pip install -e .
 zspin run --config examples/config.json --dry-run
 ```
 
+
+### Kubernetes + GitOps commands
+
+```bash
+PYTHONPATH=src python -m zspin.cli deploy-service api
+PYTHONPATH=src python -m zspin.cli scale-service api 2
+PYTHONPATH=src python -m zspin.cli gitops-apply
+PYTHONPATH=src python -m zspin.cli simulate-alert HighCPU
+```
+
+Kubernetes manifests live in `k8s/`, ArgoCD app manifest in `gitops/`, alert rules in `observability/`, and policy rules in `policy/`.
+
 ### Run full validation bundle
 
 ```bash

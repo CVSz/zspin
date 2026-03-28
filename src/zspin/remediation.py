@@ -11,7 +11,7 @@ class Service:
 
 
 class RemediationEngine:
-    """Maps issue types to actionable runtime remediation."""
+    """Maps issue/action types to actionable runtime remediation."""
 
     def __init__(self) -> None:
         self.runtime = Runtime()
@@ -21,11 +21,15 @@ class RemediationEngine:
         service_name = str(issue.get("service", "api"))
         service = Service(name=service_name)
 
-        if issue_type == "high_cpu":
+        if issue_type == "restart":
+            output = self.runtime.restart(service)
+            return {"action": "restart", "service": service_name, "output": output.strip()}
+
+        if issue_type in {"high_cpu", "scale"}:
             output = self.runtime.scale(service, replicas=2)
             return {"action": "scale", "service": service_name, "output": output.strip()}
 
-        if issue_type == "unhealthy":
+        if issue_type in {"unhealthy", "redeploy"}:
             output = self.runtime.deploy(service)
             return {"action": "redeploy", "service": service_name, "output": output.strip()}
 
