@@ -38,6 +38,8 @@ A buildable monorepo example (NestJS + Next.js + React admin + WebSocket wiring)
 
 For the production-grade backend/design/infrastructure blueprint (Kafka, double-entry accounting, Terraform scaffold, and design tokens), see `docs/enterprise_platform_blueprint.md` and `examples/enterprise-blueprint/`.
 
+For the next-layer operating model (data lake/ML, regulatory reporting, Customer 360, real-time ML controls, CQRS evolution), see `docs/platform_kernel_blueprint.md`.
+
 ## Quick start
 
 ```bash
