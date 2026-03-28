@@ -62,6 +62,12 @@ zspin run --config examples/config.json --dry-run
 python scripts/validate.py
 ```
 
+### Run master meta deep audit (full project)
+
+```bash
+python scripts/deep_audit.py
+```
+
 ### Build reproducible release artifact
 
 ```bash
