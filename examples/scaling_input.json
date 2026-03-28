@@ -1,0 +1,28 @@
+{
+  "policy": {
+    "min_replicas": 3,
+    "max_replicas": 60,
+    "cpu_target_percent": 65,
+    "memory_target_percent": 70,
+    "headroom_percent": 35,
+    "canary_steps_percent": [5, 20, 40, 70, 100]
+  },
+  "services": [
+    {
+      "service": "api-gateway",
+      "current_replicas": 6,
+      "cpu_per_replica": 0.4,
+      "memory_per_replica_gb": 0.75,
+      "historical_rps": [120, 140, 160, 180, 210, 260],
+      "p95_latency_ms": 110
+    },
+    {
+      "service": "billing",
+      "current_replicas": 4,
+      "cpu_per_replica": 0.3,
+      "memory_per_replica_gb": 0.5,
+      "historical_rps": [40, 45, 52, 58, 65, 72],
+      "p95_latency_ms": 180
+    }
+  ]
+}

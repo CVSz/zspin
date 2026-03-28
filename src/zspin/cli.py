@@ -18,6 +18,9 @@ def build_parser() -> argparse.ArgumentParser:
     run_cmd.add_argument("--dry-run", action="store_true", help="Skip artifact generation")
 
     sub.add_parser("cost", help="Analyze resource costs and optimization opportunities")
+    scale_cmd = sub.add_parser("scaling-plan", help="Generate deterministic scaling plan bundle")
+    scale_cmd.add_argument("--input", required=True, help="Path to scaling input JSON")
+    scale_cmd.add_argument("--output", default="reports/scaling_plan.json", help="Output report path")
 
     create_cmd = sub.add_parser("create-service", help="Create a service descriptor")
     create_cmd.add_argument("name", type=str)
@@ -91,6 +94,13 @@ def main() -> int:
 
     if args.command == "cost":
         return _run_cost()
+
+    if args.command == "scaling-plan":
+        from .scaling import generate_scaling_bundle
+
+        report = generate_scaling_bundle(args.input, args.output)
+        print(json.dumps(report, indent=2, sort_keys=True))
+        return 0
 
     if args.command == "create-service":
         service = Service(args.name, args.service_type)
