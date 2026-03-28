@@ -1,0 +1,18 @@
+groups:
+  - name: zspin-alerts
+    rules:
+      - alert: HighCPU
+        expr: process_cpu_seconds_total > 0.9
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          description: "High CPU detected"
+
+      - alert: ServiceDown
+        expr: up == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          description: "Service is down"

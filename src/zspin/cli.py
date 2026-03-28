@@ -6,7 +6,6 @@ import json
 from .config import load_config
 from .finops import FinOpsEngine
 from .installer import run_workflow
-from .platform.deploy import deploy
 from .platform.services import Service
 
 
@@ -26,6 +25,13 @@ def build_parser() -> argparse.ArgumentParser:
 
     deploy_cmd = sub.add_parser("deploy-service", help="Deploy a service descriptor")
     deploy_cmd.add_argument("name", type=str)
+
+    sub.add_parser("gitops-apply", help="Apply GitOps Argo CD application")
+
+    alert_cmd = sub.add_parser("simulate-alert", help="Simulate an alert to trigger remediation")
+    alert_cmd.add_argument("alert_name", type=str)
+
+    sub.add_parser("start-metrics", help="Start Prometheus metrics endpoint")
 
     return parser
 
@@ -61,8 +67,32 @@ def main() -> int:
         return 0
 
     if args.command == "deploy-service":
+        from .platform.runtime import Runtime
+
         service = Service(args.name, "api")
-        print("Deploy:", deploy(service))
+        runtime = Runtime()
+        print("Deploy:", runtime.deploy(service))
+        return 0
+
+    if args.command == "gitops-apply":
+        from .platform.gitops import apply_gitops
+
+        print("GitOps applied:", apply_gitops())
+        return 0
+
+    if args.command == "simulate-alert":
+        from .observability.alerts import AlertHandler
+
+        handler = AlertHandler()
+        alert = {"alert": args.alert_name}
+        print("Auto-healing result:", handler.handle(alert))
+        return 0
+
+    if args.command == "start-metrics":
+        from .observability.metrics import start_metrics_server
+
+        start_metrics_server()
+        print("Metrics server running on :8000")
         return 0
 
     parser.print_help()
