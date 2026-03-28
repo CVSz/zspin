@@ -68,6 +68,12 @@ python scripts/validate.py
 bash scripts/build_release.sh
 ```
 
+### Generate scaling feature bundle (autoscaling + canary + multi-region)
+
+```bash
+zspin scaling-plan --input examples/scaling_input.json --output reports/scaling_plan.json
+```
+
 ## Pseudo-code workflow
 
 ```text
