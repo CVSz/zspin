@@ -33,6 +33,11 @@ See full notes in `docs/architecture.md` and `docs/workflow.md`.
 
 A buildable monorepo example (NestJS + Next.js + React admin + WebSocket wiring) is available at `examples/betting-platform-mvp/`.
 
+
+## Enterprise blueprint add-on
+
+For the production-grade backend/design/infrastructure blueprint (Kafka, double-entry accounting, Terraform scaffold, and design tokens), see `docs/enterprise_platform_blueprint.md` and `examples/enterprise-blueprint/`.
+
 ## Quick start
 
 ```bash

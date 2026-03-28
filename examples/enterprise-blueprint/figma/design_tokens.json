@@ -1,0 +1,62 @@
+{
+  "$schema": "https://tokens.studio/schema.json",
+  "global": {
+    "color": {
+      "primary": { "value": "#FFCC00", "type": "color" },
+      "background": { "value": "#0A0A0A", "type": "color" },
+      "surface": { "value": "#1A1A1A", "type": "color" },
+      "success": { "value": "#00C853", "type": "color" },
+      "danger": { "value": "#FF5252", "type": "color" }
+    },
+    "spacing": {
+      "xs": { "value": "4", "type": "spacing" },
+      "sm": { "value": "8", "type": "spacing" },
+      "md": { "value": "16", "type": "spacing" },
+      "lg": { "value": "24", "type": "spacing" },
+      "xl": { "value": "32", "type": "spacing" }
+    },
+    "radius": {
+      "sm": { "value": "6", "type": "borderRadius" },
+      "md": { "value": "12", "type": "borderRadius" },
+      "lg": { "value": "16", "type": "borderRadius" }
+    },
+    "typography": {
+      "heading": {
+        "value": {
+          "fontFamily": "Inter",
+          "fontWeight": "700",
+          "lineHeight": "1.2"
+        },
+        "type": "typography"
+      },
+      "body": {
+        "value": {
+          "fontFamily": "Inter",
+          "fontWeight": "400",
+          "lineHeight": "1.5"
+        },
+        "type": "typography"
+      },
+      "mono": {
+        "value": {
+          "fontFamily": "JetBrains Mono",
+          "fontWeight": "500",
+          "lineHeight": "1.4"
+        },
+        "type": "typography"
+      }
+    }
+  },
+  "components": {
+    "button": {
+      "primary": {
+        "bg": { "value": "{global.color.primary}", "type": "color" },
+        "text": { "value": "#000000", "type": "color" }
+      },
+      "danger": {
+        "bg": { "value": "{global.color.danger}", "type": "color" },
+        "text": { "value": "#FFFFFF", "type": "color" }
+      }
+    }
+  }
+}
