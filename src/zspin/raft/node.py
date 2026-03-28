@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from typing import Any
 
+from zspin.rpc.client import send
 from zspin.raft.cluster import PeerClient
 from zspin.raft.log import LogEntry, RaftLog
 from zspin.raft.snapshot import Snapshot
@@ -48,7 +49,19 @@ class RaftNode:
         self.send_heartbeat()
         self.update_commit_index()
         self.log.apply(self.sm)
+        self._replicate_over_http(command)
         return True
+
+    def _replicate_over_http(self, command: dict[str, Any]) -> None:
+        attached = {client.address for client in self.clients}
+        for peer in self.peer_addresses:
+            if not peer.startswith("http://"):
+                continue
+            if peer in attached:
+                continue
+            payload = dict(command)
+            payload["_replicated"] = True
+            send(peer, payload)
 
     def send_heartbeat(self) -> None:
         for client in self.clients:
