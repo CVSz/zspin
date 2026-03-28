@@ -46,6 +46,13 @@ def build_parser() -> argparse.ArgumentParser:
     api_key_cmd = sub.add_parser("gen-apikey", help="Generate tenant API key")
     api_key_cmd.add_argument("tenant", type=str)
 
+    raft_cmd = sub.add_parser("run-raft", help="Run a local Raft node")
+    raft_cmd.add_argument("node_id", type=str)
+    raft_cmd.add_argument("--peers", nargs="*", default=[], help="Peer IDs in local cluster")
+
+    db_cmd = sub.add_parser("run-db", help="Run distributed DB shell on top of Raft")
+    db_cmd.add_argument("node_id", type=str)
+
     return parser
 
 
@@ -139,6 +146,44 @@ def main() -> int:
 
         key = generate_key(args.tenant)
         print("API KEY:", key)
+        return 0
+
+    if args.command == "run-raft":
+        from .raft.cluster import LocalCluster
+        from .raft.node import RaftNode
+
+        cluster = LocalCluster()
+        node = RaftNode(args.node_id, args.peers)
+        cluster.register(args.node_id, node)
+        node.attach_clients(cluster.clients_for(args.peers))
+        print(f"Raft node ready: id={args.node_id} peers={args.peers}")
+        return 0
+
+    if args.command == "run-db":
+        from .distributed_db.engine import Database
+        from .raft.node import RaftNode
+
+        node = RaftNode(args.node_id, [])
+        node.become_leader()
+        db = Database(node)
+        print("Distributed DB ready. Use commands: INSERT <k> <v>, SELECT <k>, DELETE <k>")
+
+        while True:
+            try:
+                q = input("sql> ").strip()
+            except EOFError:
+                print()
+                break
+
+            if q.lower() in {"quit", "exit"}:
+                break
+            if not q:
+                continue
+
+            try:
+                print(db.query(q))
+            except Exception as exc:
+                print("error:", exc)
         return 0
 
     parser.print_help()
