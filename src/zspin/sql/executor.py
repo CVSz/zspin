@@ -16,12 +16,10 @@ class SQLExecutor:
     def execute(self, plan: dict[str, str]) -> dict[str, object]:
         if plan["op"] == "insert":
             ts = time.time()
-            self.store.write(plan["key"], plan["value"], ts)
-            self.index.add(plan["key"], plan["value"])
             ok = True
             if hasattr(self.raft, "propose"):
-                ok = self.raft.propose({"op": "set", "key": plan["key"], "value": plan["value"]})
-            return {"status": "ok" if ok else "not_leader"}
+                ok = self.raft.propose({"op": "mvcc_write", "key": plan["key"], "value": plan["value"], "ts": ts})
+            return {"status": "proposed" if ok else "not_leader"}
 
         if plan["op"] == "delete":
             ok = True
