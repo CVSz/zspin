@@ -28,6 +28,11 @@ Artifacts:
 
 See full notes in `docs/architecture.md` and `docs/workflow.md`.
 
+
+## New example: full-stack betting MVP
+
+A buildable monorepo example (NestJS + Next.js + React admin + WebSocket wiring) is available at `examples/betting-platform-mvp/`.
+
 ## Quick start
 
 ```bash

@@ -1,3 +1,8 @@
+
+## Unreleased
+
+- Added a buildable `examples/betting-platform-mvp` full-stack scaffold with NestJS backend, Socket.IO real-time events, Next.js frontend dashboard, React admin panel, and Docker Compose wiring.
+
 # Changelog
 
 ## 0.1.0 - 2026-03-28
