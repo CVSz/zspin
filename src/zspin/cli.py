@@ -33,6 +33,16 @@ def build_parser() -> argparse.ArgumentParser:
 
     sub.add_parser("start-metrics", help="Start Prometheus metrics endpoint")
 
+    sub.add_parser("start-api", help="Start control plane API")
+
+    deploy_multi_cmd = sub.add_parser("deploy-multi", help="Deploy service in multi-tenant mode")
+    deploy_multi_cmd.add_argument("name", type=str)
+    deploy_multi_cmd.add_argument("tenant", type=str)
+
+    token_cmd = sub.add_parser("gen-token", help="Generate JWT token")
+    token_cmd.add_argument("user", type=str)
+    token_cmd.add_argument("tenant", type=str)
+
     return parser
 
 
@@ -93,6 +103,32 @@ def main() -> int:
 
         start_metrics_server()
         print("Metrics server running on :8000")
+        return 0
+
+    if args.command == "start-api":
+        import uvicorn
+
+        from .control_plane.api import app as cp_app
+
+        uvicorn.run(cp_app, host="0.0.0.0", port=8080)
+        return 0
+
+    if args.command == "deploy-multi":
+        from .control_plane.manager import ControlPlane
+        from .multicluster import MultiClusterScheduler
+
+        cp = ControlPlane()
+        scheduler = MultiClusterScheduler()
+        cluster = scheduler.select_cluster({"name": args.name}, cp.clusters)
+        result = cp.deploy({"name": args.name}, args.tenant, cluster)
+        print(result)
+        return 0
+
+    if args.command == "gen-token":
+        from .auth import create_token
+
+        token = create_token(args.user, args.tenant)
+        print("JWT:", token)
         return 0
 
     parser.print_help()
