@@ -74,6 +74,14 @@ python scripts/deep_audit.py
 bash scripts/build_release.sh
 ```
 
+### Generate full implementation bundle (master meta)
+
+```bash
+zspin master-meta --config examples/config.json --output-dir reports/master_meta
+```
+
+This command emits deterministic audit + SBOM + AI analytics metadata in one bundle and can be used as a CI/CD gate.
+
 ### Generate scaling feature bundle (autoscaling + canary + multi-region)
 
 ```bash
