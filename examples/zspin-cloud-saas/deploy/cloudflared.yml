@@ -1,0 +1,7 @@
+tunnel: zspin
+credentials-file: /root/.cloudflared/xxx.json
+
+ingress:
+  - hostname: api.zeaz.dev
+    service: http://localhost:8000
+  - service: http_status:404
