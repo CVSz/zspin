@@ -2,6 +2,8 @@ from __future__ import annotations
 
 import argparse
 import json
+import time
+import threading
 
 from .config import load_config
 from .finops import FinOpsEngine
@@ -208,8 +210,6 @@ def main() -> int:
         return 0
 
     if args.command == "run-raft-grpc":
-        import threading
-
         from .raft.node import RaftNode
         from .raft.server import serve
 
@@ -259,18 +259,26 @@ def main() -> int:
     if args.command == "run-db":
         from .distributed_db.engine import Database
         from .raft.node import RaftNode
+        from .rpc.server import start_rpc
 
-        node = RaftNode(args.node_id, [])
-        node.become_leader()
+        default_ports = {"node1": 8000, "node2": 8001, "node3": 8002}
+        local_port = default_ports.get(args.node_id, 8000)
+        peers = [f"http://localhost:{port}" for node, port in default_ports.items() if node != args.node_id]
+
+        node = RaftNode(args.node_id, peers)
+        if args.node_id == "node1":
+            node.become_leader()
         db = Database(node)
+        threading.Thread(target=start_rpc, args=(db, local_port), daemon=True).start()
         print("Distributed DB ready. Use commands: INSERT <k> <v>, SELECT <k>, DELETE <k>")
 
         while True:
             try:
                 q = input("sql> ").strip()
             except EOFError:
-                print()
-                break
+                print("\nInput stream closed; RPC server remains active.")
+                while True:
+                    time.sleep(1)
 
             if q.lower() in {"quit", "exit"}:
                 break

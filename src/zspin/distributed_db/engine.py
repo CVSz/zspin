@@ -5,6 +5,7 @@ from zspin.distributed_db.geo import RegionManager
 from zspin.distributed_db.index import SecondaryIndex
 from zspin.distributed_db.mvcc import MVCCStore
 from zspin.distributed_db.sharding import ShardManager
+from zspin.distributed_db.snapshot import Snapshot
 from zspin.distributed_db.truetime import TrueTime
 from zspin.distributed_db.tx2pc import TwoPhaseCommit
 from zspin.distributed_db.vector import VectorIndex
@@ -23,7 +24,8 @@ class Database:
         self.parser = SQLParser()
         self.planner = QueryPlanner()
         self.store = MVCCStore()
-        self.wal = WAL()
+        self.wal = WAL(path=f"{self.raft.node_id}.wal")
+        self.snapshot = Snapshot(path=f"{self.raft.node_id}_snapshot.json")
         self.index = SecondaryIndex()
         self.executor = SQLExecutor(self.store, raft_node, self.index)
         self.shards = ShardManager()
@@ -36,6 +38,7 @@ class Database:
         self.vector = VectorIndex()
         if hasattr(self.raft, "sm") and hasattr(self.raft.sm, "register_handler"):
             self.raft.sm.register_handler("mvcc_write", self._apply_mvcc_write)
+        self._load_snapshot()
         self._replay_wal()
 
     def query(self, sql: str) -> dict[str, object]:
@@ -59,6 +62,31 @@ class Database:
         self.wal.append({"op": "mvcc_write", "key": key, "value": value, "ts": ts})
         self.store.write(key, value, ts)
         self.index.add(key, value)
+
+    def apply(self, command: dict[str, object]) -> dict[str, object]:
+        if command.get("op") == "mvcc_write":
+            if self.raft.state == "leader" and not bool(command.get("_replicated", False)):
+                accepted = self.raft.propose(command)
+                return {"status": "proposed" if accepted else "rejected"}
+            self._apply_mvcc_write(command)
+            return {"status": "applied"}
+
+        return {"status": "ignored"}
+
+    def snapshot_now(self) -> None:
+        self.snapshot.save(self.store.data)
+
+    def _load_snapshot(self) -> None:
+        snapshot_data = self.snapshot.load()
+        for key, versions in snapshot_data.items():
+            if not isinstance(versions, list):
+                continue
+            for item in versions:
+                if not isinstance(item, list | tuple) or len(item) != 2:
+                    continue
+                ts, value = item
+                self.store.write(str(key), value, float(ts))
+                self.index.add(str(key), value)
 
     def _replay_wal(self) -> None:
         for record in self.wal.replay():
