@@ -1,0 +1,6 @@
+{
+  "environment": "staging",
+  "autoheal": true,
+  "enforce_compliance": true,
+  "deployment_target": "docker"
+}
