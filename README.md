@@ -82,6 +82,14 @@ zspin master-meta --config examples/config.json --output-dir reports/master_meta
 
 This command emits deterministic audit + SBOM + AI analytics metadata in one bundle and can be used as a CI/CD gate.
 
+### Generate full source-code go-live installer bundle
+
+```bash
+zspin go-live-installer --config examples/config.json --output-dir dist/go_live_installer --dry-run
+```
+
+This command emits cross-platform installer scripts (`install_go_live.sh` and `install_go_live.ps1`), a full source snapshot, compliance artifacts, and a deterministic go-live report.
+
 ### Generate scaling feature bundle (autoscaling + canary + multi-region)
 
 ```bash

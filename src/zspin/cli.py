@@ -77,6 +77,21 @@ def build_parser() -> argparse.ArgumentParser:
         action="store_true",
         help="Skip release artifact generation and perform analysis/reporting only",
     )
+    go_live_cmd = sub.add_parser(
+        "go-live-installer",
+        help="Generate full source-code go-live installer bundle",
+    )
+    go_live_cmd.add_argument("--config", default=None, help="Path to workflow config JSON")
+    go_live_cmd.add_argument(
+        "--output-dir",
+        default="dist/go_live_installer",
+        help="Directory to store installer scripts, source snapshot, and reports",
+    )
+    go_live_cmd.add_argument(
+        "--dry-run",
+        action="store_true",
+        help="Skip heavy release packaging in nested master-meta bundle",
+    )
 
     return parser
 
@@ -273,6 +288,14 @@ def main() -> int:
 
         config = load_config(args.config)
         bundle = run_master_meta_bundle(config=config, output_dir=args.output_dir, dry_run=args.dry_run)
+        print(json.dumps(bundle, indent=2, sort_keys=True))
+        return 0
+
+    if args.command == "go-live-installer":
+        from .go_live import run_go_live_installer_bundle
+
+        config = load_config(args.config)
+        bundle = run_go_live_installer_bundle(config=config, output_dir=args.output_dir, dry_run=args.dry_run)
         print(json.dumps(bundle, indent=2, sort_keys=True))
         return 0
 
