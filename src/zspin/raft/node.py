@@ -1,5 +1,8 @@
 from __future__ import annotations
 
+import random
+import threading
+import time
 from typing import Any
 
 from zspin.rpc.client import send
@@ -20,6 +23,8 @@ class RaftNode:
         self.state_store = PersistentState(path=state_path or f"{self.node_id}_raft_state.json")
         self.term = self.state_store.term
         self.voted_for = self.state_store.voted_for
+        self.lock = threading.Lock()
+        self.election_timeout = time.time() + random.uniform(2, 4)
 
         self.log = RaftLog()
         self.sm = StateMachine()
@@ -32,11 +37,56 @@ class RaftNode:
         self.clients = clients
 
     def become_leader(self) -> None:
-        self.state = "leader"
-        next_idx = len(self.log.entries)
-        for client in self.clients:
-            self.next_index[client.address] = next_idx
-            self.match_index[client.address] = -1
+        with self.lock:
+            self.state = "leader"
+            next_idx = len(self.log.entries)
+            for client in self.clients:
+                self.next_index[client.address] = next_idx
+                self.match_index[client.address] = -1
+
+    def become_follower(self, term: int) -> None:
+        with self.lock:
+            self.state = "follower"
+            self.term = term
+            self.voted_for = None
+            self.state_store.set_term(term)
+            self.state_store.vote_for(None)
+
+    def start_election(self) -> bool:
+        with self.lock:
+            self.state = "candidate"
+            self.term += 1
+            self.state_store.set_term(self.term)
+            self.voted_for = self.node_id
+            self.state_store.vote_for(self.node_id)
+            votes = 1
+
+            last_log_index = len(self.log.entries) - 1
+            last_log_term = self.log.entries[last_log_index].term if last_log_index >= 0 else 0
+
+        for peer in self.peer_addresses:
+            if not peer.startswith("http://"):
+                continue
+            response = send(
+                f"{peer.rstrip('/')}/vote",
+                {
+                    "term": self.term,
+                    "candidate": self.node_id,
+                    "last_log_index": last_log_index,
+                    "last_log_term": last_log_term,
+                },
+            )
+            if response.get("vote"):
+                votes += 1
+            peer_term = response.get("term")
+            if isinstance(peer_term, int) and peer_term > self.term:
+                self.become_follower(peer_term)
+                return False
+
+        if votes > (len(self.peer_addresses) + 1) // 2:
+            self.become_leader()
+            return True
+        return False
 
     def append_entry(self, command: dict[str, Any]) -> None:
         self.log.append(LogEntry(term=self.term, command=command))
@@ -46,11 +96,11 @@ class RaftNode:
             return False
 
         self.append_entry(command)
+        prior_commit = self.log.commit_index
         self.send_heartbeat()
         self.update_commit_index()
         self.log.apply(self.sm)
-        self._replicate_over_http(command)
-        return True
+        return self.log.commit_index > prior_commit
 
     def _replicate_over_http(self, command: dict[str, Any]) -> None:
         attached = {client.address for client in self.clients}
@@ -121,6 +171,7 @@ class RaftNode:
             self.term = term
             self.state_store.set_term(term)
             self.voted_for = None
+            self.state_store.vote_for(None)
 
         self.state = "follower"
 
@@ -137,7 +188,24 @@ class RaftNode:
 
         return True, len(self.log.entries) - 1
 
-    def request_vote(self, term: int, candidate_id: str, last_log_index: int, last_log_term: int) -> bool:
+    def append_entries(self, request: dict[str, object]) -> dict[str, object]:
+        success, match_index = self.handle_append_entries(
+            term=int(request.get("term", 0)),
+            leader_id=str(request.get("leader_id", "")),
+            prev_index=int(request.get("prev_index", -1)),
+            prev_term=int(request.get("prev_term", 0)),
+            entries=list(request.get("entries", [])),
+            leader_commit=int(request.get("leader_commit", -1)),
+        )
+        return {"success": success, "match_index": match_index, "term": self.term}
+
+    def request_vote(
+        self,
+        term: int,
+        candidate_id: str,
+        last_log_index: int | None = None,
+        last_log_term: int | None = None,
+    ) -> bool:
         if term < self.term:
             return False
 
@@ -148,6 +216,11 @@ class RaftNode:
 
         if self.voted_for not in (None, candidate_id):
             return False
+
+        if last_log_index is None:
+            last_log_index = len(self.log.entries) - 1
+        if last_log_term is None:
+            last_log_term = self.log.entries[last_log_index].term if last_log_index >= 0 else 0
 
         current_last_index = len(self.log.entries) - 1
         current_last_term = self.log.entries[current_last_index].term if current_last_index >= 0 else 0

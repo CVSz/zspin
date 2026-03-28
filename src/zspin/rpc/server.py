@@ -17,7 +17,19 @@ class RPCHandler(BaseHTTPRequestHandler):
         length = int(self.headers["Content-Length"])
         body = self.rfile.read(length)
         command = json.loads(body)
-        result = RPCHandler.node.apply(command)
+        if command.get("type") == "append" and hasattr(RPCHandler.node, "append_entries"):
+            result = RPCHandler.node.append_entries(command)
+        elif self.path == "/vote" and hasattr(RPCHandler.node, "request_vote"):
+            vote = RPCHandler.node.request_vote(
+                int(command["term"]),
+                str(command["candidate"]),
+                int(command.get("last_log_index", -1)),
+                int(command.get("last_log_term", 0)),
+            )
+            term = getattr(RPCHandler.node, "term", command["term"])
+            result = {"vote": vote, "term": term}
+        else:
+            result = RPCHandler.node.apply(command)
 
         self.send_response(200)
         self.end_headers()
