@@ -1,0 +1,5 @@
+image:
+  repository: YOUR_DOCKERHUB/zspin
+  tag: latest
+
+domain: api.zeaz.dev
