@@ -10,7 +10,7 @@ readme = "README.md"
 requires-python = ">=3.11"
 authors = [{name = "zspin maintainers"}]
 license = {text = "MIT"}
-dependencies = []
+dependencies = ["prometheus-client>=0.22.0"]
 
 [project.scripts]
 zspin = "zspin.cli:main"
