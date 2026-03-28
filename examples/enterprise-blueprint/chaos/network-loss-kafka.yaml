@@ -1,0 +1,25 @@
+apiVersion: chaos-mesh.org/v1alpha1
+kind: NetworkChaos
+metadata:
+  name: kafka-network-loss
+  namespace: chaos-testing
+spec:
+  action: loss
+  mode: all
+  selector:
+    namespaces:
+      - platform
+    labelSelectors:
+      app: betting-service
+  loss:
+    loss: "100"
+    correlation: "100"
+  direction: to
+  target:
+    mode: all
+    selector:
+      namespaces:
+        - platform
+      labelSelectors:
+        app: kafka
+  duration: "60s"
