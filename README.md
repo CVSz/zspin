@@ -107,3 +107,20 @@ EMIT audit report + SBOM + checksums
 ## License
 
 MIT (see `LICENSE`).
+
+# 🚀 Scaling Features
+
+## Autoscaling
+- HPA based on CPU
+
+## Canary Deployments
+- Argo Rollouts
+
+## Observability
+- Prometheus + Grafana
+
+## Multi-region
+- Node labeling strategy
+
+## Cloudflare Tunnel
+- Secure public access without exposing ingress

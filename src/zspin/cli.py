@@ -43,6 +43,9 @@ def build_parser() -> argparse.ArgumentParser:
     token_cmd.add_argument("user", type=str)
     token_cmd.add_argument("tenant", type=str)
 
+    api_key_cmd = sub.add_parser("gen-apikey", help="Generate tenant API key")
+    api_key_cmd.add_argument("tenant", type=str)
+
     return parser
 
 
@@ -129,6 +132,13 @@ def main() -> int:
 
         token = create_token(args.user, args.tenant)
         print("JWT:", token)
+        return 0
+
+    if args.command == "gen-apikey":
+        from .apikeys import generate_key
+
+        key = generate_key(args.tenant)
+        print("API KEY:", key)
         return 0
 
     parser.print_help()

@@ -1,0 +1,19 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: zspin
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: zspin
+  template:
+    metadata:
+      labels:
+        app: zspin
+    spec:
+      containers:
+        - name: zspin
+          image: YOUR_DOCKERHUB/zspin:latest
+          ports:
+            - containerPort: 8080

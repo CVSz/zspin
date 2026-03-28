@@ -1,0 +1,3 @@
+# Apply per cluster:
+# kubectl label nodes <node> region=us-east
+# kubectl label nodes <node> region=eu-west
