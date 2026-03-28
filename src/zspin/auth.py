@@ -7,7 +7,7 @@ import json
 import os
 import time
 
-SECRET = os.getenv("ZSPIN_JWT_SECRET", "zspin-secret")
+SECRET = os.getenv("ZSPIN_JWT_SECRET", "dev-secret")
 
 
 def _b64url_encode(data: bytes) -> str:
@@ -25,6 +25,7 @@ def create_token(user: str, tenant: str) -> str:
         "sub": user,
         "tenant": tenant,
         "iat": int(time.time()),
+        "exp": int(time.time()) + 86400,
     }
 
     header_b64 = _b64url_encode(json.dumps(header, separators=(",", ":")).encode("utf-8"))
@@ -50,4 +51,6 @@ def verify_token(token: str) -> dict[str, str | int]:
     payload = json.loads(_b64url_decode(payload_b64).decode("utf-8"))
     if "tenant" not in payload or "sub" not in payload:
         raise ValueError("token missing required claims")
+    if int(payload.get("exp", 0)) < int(time.time()):
+        raise ValueError("token expired")
     return payload
