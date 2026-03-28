@@ -1,0 +1,15 @@
+apiVersion: networking.istio.io/v1beta1
+kind: VirtualService
+metadata:
+  name: zspin
+spec:
+  hosts:
+    - "api.zeaz.dev"
+  gateways:
+    - zspin-gateway
+  http:
+    - route:
+        - destination:
+            host: zspin
+            port:
+              number: 80

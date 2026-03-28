@@ -1,0 +1,14 @@
+apiVersion: cluster.karmada.io/v1alpha1
+kind: PropagationPolicy
+metadata:
+  name: zspin-propagation
+spec:
+  resourceSelectors:
+    - apiVersion: apps/v1
+      kind: Deployment
+      name: zspin
+  placement:
+    clusterAffinity:
+      clusterNames:
+        - cluster-a
+        - cluster-b
