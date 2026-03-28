@@ -23,3 +23,10 @@ class ControlLoop:
             decision = self.decide(state)
             self.act(decision)
             time.sleep(self.interval)
+
+
+
+def run_operator_loop(operator, interval: int = 5) -> None:
+    while True:
+        operator.reconcile()
+        time.sleep(interval)
