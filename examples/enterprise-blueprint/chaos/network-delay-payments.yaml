@@ -1,0 +1,26 @@
+apiVersion: chaos-mesh.org/v1alpha1
+kind: NetworkChaos
+metadata:
+  name: payment-latency
+  namespace: chaos-testing
+spec:
+  action: delay
+  mode: all
+  selector:
+    namespaces:
+      - platform
+    labelSelectors:
+      app: betting-service
+  delay:
+    latency: "500ms"
+    correlation: "50"
+    jitter: "100ms"
+  direction: to
+  target:
+    mode: all
+    selector:
+      namespaces:
+        - platform
+      labelSelectors:
+        app: payment-service
+  duration: "3m"

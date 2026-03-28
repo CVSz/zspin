@@ -40,6 +40,8 @@ For the production-grade backend/design/infrastructure blueprint (Kafka, double-
 
 For the next-layer operating model (data lake/ML, regulatory reporting, Customer 360, real-time ML controls, CQRS evolution), see `docs/platform_kernel_blueprint.md`.
 
+For a dedicated reliability + intelligence runbook (observability, chaos engineering, and MLOps lifecycle), see `docs/reliability_intelligence_backbone.md` and the corresponding assets under `examples/enterprise-blueprint/{observability,chaos,mlops}`.
+
 ## Quick start
 
 ```bash
