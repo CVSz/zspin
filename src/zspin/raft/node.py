@@ -25,13 +25,17 @@ class RaftNode:
         self.voted_for = self.state_store.voted_for
         self.lock = threading.Lock()
         self.election_timeout = time.time() + random.uniform(2, 4)
+        self.heartbeat_interval = 1.0
 
         self.log = RaftLog()
         self.sm = StateMachine()
         self.snapshot = Snapshot(path=f"{self.node_id}_snapshot.json")
+        self.last_snapshot_index = -1
+        self.last_snapshot_term = 0
 
         self.next_index: dict[str, int] = {}
         self.match_index: dict[str, int] = {}
+        self.cluster = set(peers + [node_id])
 
     def attach_clients(self, clients: list[PeerClient]) -> None:
         self.clients = clients
@@ -43,6 +47,12 @@ class RaftNode:
             for client in self.clients:
                 self.next_index[client.address] = next_idx
                 self.match_index[client.address] = -1
+        threading.Thread(target=self.heartbeat_loop, daemon=True).start()
+
+    def heartbeat_loop(self) -> None:
+        while self.state == "leader":
+            self.send_heartbeat()
+            time.sleep(self.heartbeat_interval)
 
     def become_follower(self, term: int) -> None:
         with self.lock:
@@ -174,6 +184,7 @@ class RaftNode:
             self.state_store.vote_for(None)
 
         self.state = "follower"
+        self.election_timeout = time.time() + random.uniform(2, 4)
 
         if not self.log.match(prev_index, prev_term):
             return False, len(self.log.entries) - 1
@@ -231,16 +242,22 @@ class RaftNode:
 
         self.voted_for = candidate_id
         self.state_store.vote_for(candidate_id)
+        self.election_timeout = time.time() + random.uniform(2, 4)
         return True
 
-    def take_snapshot(self) -> None:
+    def create_snapshot(self) -> None:
         last_idx = self.log.commit_index
         last_term = self.log.entries[last_idx].term if last_idx >= 0 else 0
         self.snapshot.save(self.sm, last_included_index=last_idx, last_included_term=last_term)
         if last_idx >= 0:
             self.log.entries = self.log.entries[last_idx + 1 :]
+        self.last_snapshot_index = last_idx
+        self.last_snapshot_term = last_term
         self.log.commit_index = -1
         self.log.last_applied = -1
+
+    def take_snapshot(self) -> None:
+        self.create_snapshot()
 
     def install_snapshot(self, term: int, leader_id: str, snapshot_data: dict[str, object]) -> bool:
         del leader_id
@@ -257,6 +274,28 @@ class RaftNode:
         self.log.entries = []
         self.log.commit_index = -1
         self.log.last_applied = -1
+        self.last_snapshot_index = int(snapshot_data.get("last_included_index", -1))
+        self.last_snapshot_term = int(snapshot_data.get("last_included_term", 0))
+        return True
+
+    def install_snapshot_rpc(self, request: dict[str, object]) -> dict[str, object]:
+        success = self.install_snapshot(
+            term=int(request.get("term", 0)),
+            leader_id=str(request.get("leader_id", "")),
+            snapshot_data=dict(request.get("snapshot", {})),
+        )
+        return {"success": success, "term": self.term}
+
+    def add_node(self, node_url: str) -> bool:
+        if self.state != "leader":
+            return False
+        if node_url in self.cluster:
+            return True
+
+        self.cluster.add(node_url)
+        self.peer_addresses.append(node_url)
+        self.next_index[node_url] = len(self.log.entries)
+        self.match_index[node_url] = -1
         return True
 
     def add_peer(self, peer: str) -> None:

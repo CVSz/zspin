@@ -19,6 +19,8 @@ class RPCHandler(BaseHTTPRequestHandler):
         command = json.loads(body)
         if command.get("type") == "append" and hasattr(RPCHandler.node, "append_entries"):
             result = RPCHandler.node.append_entries(command)
+        elif command.get("type") == "snapshot" and hasattr(RPCHandler.node, "install_snapshot_rpc"):
+            result = RPCHandler.node.install_snapshot_rpc(command)
         elif self.path == "/vote" and hasattr(RPCHandler.node, "request_vote"):
             vote = RPCHandler.node.request_vote(
                 int(command["term"]),
